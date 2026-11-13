@@ -1,0 +1,22 @@
+{# This app's few styles, included inside {% block content %} by every page.
+
+   Not in {% block styles %}: podpack's default chrome has that block, but a
+   site's chrome need not, and a block the chrome does not define is silently
+   discarded (writing-an-app.md, "What you can rely on"). Content is the one
+   block every chrome renders. Colours lean on currentColor so the pages sit
+   in whatever palette the site uses. #}
+<style>
+  .lablog-meta { font-size: .85em; opacity: .75; margin: .25rem 0; }
+  .lablog-badge { font-size: .75em; font-weight: normal; border: 1px solid currentColor;
+                  border-radius: .75em; padding: 0 .5em; vertical-align: middle; opacity: .8; }
+  .lablog-experiment { border-top: 1px solid rgba(127,127,127,.4); margin-top: 2rem; padding-top: .5rem; }
+  .lablog-entries { list-style: none; padding: 0; }
+  .lablog-entry { border-left: 3px solid rgba(127,127,127,.5); padding: .1rem 0 .1rem .9rem; margin: 1rem 0; }
+  .lablog-claude { border-left-color: #b8743a; background: rgba(184,116,58,.06); }
+  .lablog-expectation, .lablog-conclusion { background: rgba(127,127,127,.08); padding: .25rem .9rem; }
+  .lablog-refusal { border: 1px solid #b33; padding: .5rem .9rem; }
+  .lablog-body pre, .lablog-expectation pre, .lablog-conclusion pre { overflow-x: auto; }
+  .lablog textarea { width: 100%; box-sizing: border-box; font-family: ui-monospace, monospace; }
+  .lablog input[type=text] { width: 100%; box-sizing: border-box; }
+  .lablog-errors { color: #b33; }
+</style>

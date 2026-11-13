@@ -1,0 +1,24 @@
+{# The complete log: the whole history of a project on one page, oldest
+   first, because a log is read in the order it was written. #}
+{% extends "base.html" %}
+{% from "lablog/_macros.html" import breadcrumbs %}
+{% block content %}
+{% include "lablog/_style.html" %}
+<div class="lablog">
+{{ breadcrumbs() }}
+<h2>{{ project.name }}</h2>
+{% if project.description %}{{ markdown(project.description) }}{% endif %}
+<p><a href="{{ url_for('lablog.new_experiment', slug=project.slug) }}">Start an experiment</a>
+ · <a href="{{ url_for('lablog.edit_project', slug=project.slug) }}">Edit project</a></p>
+
+{% if project.open_experiments %}
+<p>Open: {% for experiment in project.open_experiments %}<a href="#experiment-{{ experiment.number }}">experiment {{ experiment.number }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+{% endif %}
+
+{% for experiment in project.experiments %}
+{% include "lablog/_experiment.html" %}
+{% else %}
+<p>No experiments yet.</p>
+{% endfor %}
+</div>
+{% endblock %}

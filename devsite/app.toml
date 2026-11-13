@@ -1,0 +1,10 @@
+# The kind of file a real site mounts at /etc/podpack/app.toml.
+
+[site]
+name = "lablog dev site"
+environment = "local"
+apps = ["podpack_lablog"]
+
+# Keyed by the app's name -- its blueprint's -- not the import name above.
+[apps.lablog]
+timezone = "Europe/London"

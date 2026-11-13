@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "lablog/_macros.html" import breadcrumbs, errors %}
+{% block content %}
+{% include "lablog/_style.html" %}
+<div class="lablog">
+{{ breadcrumbs(project) }}
+<h2>New experiment</h2>
+<p>Say what you expect before you look. The expectation can be revised until
+the first entry is recorded, and is fixed from then on.</p>
+<form method="post">
+  {{ form.hidden_tag() }}
+  {{ errors(form) }}
+  <p>{{ form.title.label }}<br>{{ form.title(size=60) }}</p>
+  <p>{{ form.expectation.label }}<br>{{ form.expectation(rows=10) }}</p>
+  <p>{{ form.submit() }}</p>
+</form>
+</div>
+{% endblock %}

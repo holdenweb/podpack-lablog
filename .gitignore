@@ -1,0 +1,17 @@
+.venv
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+*.wp?
+
+# The throwaway site's state (devsite.py), never the app's.
+devsite/data/
+devsite/logs/
+devsite/dev.db
+
+# Built from README.md for previewing; the source is the markdown.
+README.html

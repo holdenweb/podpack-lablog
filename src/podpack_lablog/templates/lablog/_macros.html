@@ -1,0 +1,20 @@
+{# Every field's errors, the CSRF token's included. podpack-notes found that
+   rendering only the visible fields' errors brought a page back unchanged,
+   with nothing said, when the token was what had failed. #}
+{% macro errors(form) %}
+{% set ns = namespace(any=false) %}
+{% for field in form %}{% if field.errors %}{% set ns.any = true %}{% endif %}{% endfor %}
+{% if ns.any %}
+<ul class="lablog-errors">
+  {% for field in form %}{% for error in field.errors %}
+  <li>{% if field.type != "CSRFTokenField" %}{{ field.label.text }}: {% endif %}{{ error }}</li>
+  {% endfor %}{% endfor %}
+</ul>
+{% endif %}
+{% endmacro %}
+
+{% macro breadcrumbs(project=None, experiment=None) %}
+<p class="lablog-meta"><a href="{{ url_for('lablog.index') }}">Lab log</a>
+{% if project %} › <a href="{{ url_for('lablog.project', slug=project.slug) }}">{{ project.name }}</a>{% endif %}
+{% if experiment %} › experiment {{ experiment.number }}{% endif %}</p>
+{% endmacro %}

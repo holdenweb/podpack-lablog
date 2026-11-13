@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "lablog/_macros.html" import breadcrumbs, errors %}
+{% block content %}
+{% include "lablog/_style.html" %}
+<div class="lablog">
+{{ breadcrumbs(project) }}
+<h2>{{ title }}</h2>
+{% if project %}<p class="lablog-meta">Its address stays <code>{{ url_for('lablog.project', slug=project.slug) }}</code> whatever it is called.</p>{% endif %}
+<form method="post">
+  {{ form.hidden_tag() }}
+  {{ errors(form) }}
+  <p>{{ form.name.label }}<br>{{ form.name(size=60) }}</p>
+  <p>{{ form.description.label }}<br>{{ form.description(rows=6) }}</p>
+  <p>{{ form.submit() }}</p>
+</form>
+</div>
+{% endblock %}

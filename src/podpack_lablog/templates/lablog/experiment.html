@@ -1,0 +1,55 @@
+{# One experiment, and the forms its state allows: the expectation can be
+   revised only until something is recorded, entries only until it is
+   concluded, and it can be concluded only once something has been recorded.
+   The model enforces each of these; the page only declines to offer what
+   would be refused. #}
+{% extends "base.html" %}
+{% from "lablog/_macros.html" import breadcrumbs, errors %}
+{% block content %}
+{% include "lablog/_style.html" %}
+<div class="lablog">
+{{ breadcrumbs(project, experiment) }}
+{% if refusal %}<p class="lablog-refusal" role="alert">{{ refusal }}</p>{% endif %}
+
+{% include "lablog/_experiment.html" %}
+
+{% if experiment.is_concluded %}
+<p class="lablog-meta">Concluded: this record is closed.</p>
+{% else %}
+
+{% if not experiment.expectation_locked %}
+<details{% if expectation_form.errors %} open{% endif %}>
+  <summary>Revise the expectation</summary>
+  <form method="post" action="{{ url_for('lablog.revise_expectation', slug=project.slug, number=experiment.number) }}">
+    {{ expectation_form.hidden_tag() }}
+    {{ errors(expectation_form) }}
+    <p>{{ expectation_form.expectation.label }}<br>{{ expectation_form.expectation(rows=8) }}</p>
+    <p>{{ expectation_form.submit() }}</p>
+  </form>
+</details>
+{% endif %}
+
+<h3>Record an entry</h3>
+<form method="post" action="{{ url_for('lablog.add_entry', slug=project.slug, number=experiment.number) }}">
+  {{ entry_form.hidden_tag() }}
+  {{ errors(entry_form) }}
+  <p>{% for choice in entry_form.kind %}{{ choice() }} {{ choice.label }} {% endfor %}</p>
+  <p>{{ entry_form.body.label }}<br>{{ entry_form.body(rows=12, placeholder="What did you see? Paste Claude's output with the Claude output kind selected.") }}</p>
+  {% if experiment.entries %}<p>{{ entry_form.corrects.label }} {{ entry_form.corrects() }}</p>{% endif %}
+  <p>{{ entry_form.submit() }}</p>
+</form>
+
+{% if experiment.entries %}
+<h3>Conclude</h3>
+<form method="post" action="{{ url_for('lablog.conclude', slug=project.slug, number=experiment.number) }}">
+  {{ conclusion_form.hidden_tag() }}
+  {{ errors(conclusion_form) }}
+  <p>{% for choice in conclusion_form.outcome %}{{ choice() }} {{ choice.label }} {% endfor %}</p>
+  <p>{{ conclusion_form.conclusion.label }}<br>{{ conclusion_form.conclusion(rows=6) }}</p>
+  <p>{{ conclusion_form.submit() }}</p>
+</form>
+{% endif %}
+
+{% endif %}
+</div>
+{% endblock %}

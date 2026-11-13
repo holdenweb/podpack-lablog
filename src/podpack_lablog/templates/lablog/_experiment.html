@@ -1,0 +1,39 @@
+{# One experiment in full: expectation, every entry, and the conclusion if it
+   has one. Shared by the complete log and the experiment's own page, so the
+   two cannot come to show the record differently. Entry anchors use the
+   entry's id, which is unique site-wide, so they stay unique on the complete
+   log where every experiment appears at once. #}
+<article class="lablog-experiment" id="experiment-{{ experiment.number }}">
+  <h3><a href="{{ url_for('lablog.experiment', slug=experiment.project.slug, number=experiment.number) }}">Experiment {{ experiment.number }}: {{ experiment.title }}</a>
+    <span class="lablog-badge">{{ experiment.outcome_label }}</span></h3>
+  <p class="lablog-meta">Started {{ stamp(experiment.created) }} by {{ experiment.created_by.email }}</p>
+
+  <section class="lablog-expectation">
+    <h4>Expectation</h4>
+    {{ markdown(experiment.expectation) }}
+  </section>
+
+  {% if experiment.entries %}
+  <ol class="lablog-entries">
+    {% for entry in experiment.entries %}
+    <li class="lablog-entry lablog-{{ entry.kind }}" id="entry-{{ entry.id }}">
+      <p class="lablog-meta"><strong>#{{ loop.index }} {{ entry.kind_label }}</strong>
+        · {{ stamp(entry.created) }} · {{ entry.author.email }}
+        {% if entry.corrects %}· corrects <a href="#entry-{{ entry.corrects.id }}">#{{ entry.corrects.position }}</a>{% endif %}
+        {% if entry.corrections %}· corrected by {% for c in entry.corrections %}<a href="#entry-{{ c.id }}">#{{ c.position }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</p>
+      <div class="lablog-body">{{ markdown(entry.body) }}</div>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="lablog-meta">Nothing recorded yet.</p>
+  {% endif %}
+
+  {% if experiment.is_concluded %}
+  <section class="lablog-conclusion">
+    <h4>Conclusion: {{ experiment.outcome_label }}</h4>
+    <p class="lablog-meta">{{ stamp(experiment.concluded) }} by {{ experiment.concluded_by.email }}</p>
+    {{ markdown(experiment.conclusion) }}
+  </section>
+  {% endif %}
+</article>
