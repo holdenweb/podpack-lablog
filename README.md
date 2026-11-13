@@ -95,10 +95,11 @@ app can't name podpack in its dependencies.
    there either way.
 
 Until the role exists and somebody holds it, every page answers 404 to
-everyone. `/_status` reports this under the app's `status`:
+everyone. `/_status` reports this under `apps.lablog.reported`. The output
+below is from the dev site:
 
 ```json
-"lablog": {"role": "lablog", "role_exists": true, "holders": 1}
+"reported": {"holders": 1, "role": "lablog", "role_exists": true}
 ```
 
 Three spellings of one thing:
@@ -164,8 +165,9 @@ uv add --dev --editable ../podpack
 
 To run it by hand, `devsite.py` builds a throwaway site with this app
 installed, on SQLite, in podpack's default chrome. `seed` creates
-holder@example.com, who holds the role, and stranger@example.com, who doesn't.
-The password is `DEV_PASSWORD` in `devsite.py`.
+holder@example.com, who holds the `lablog` and `admin` roles, and
+stranger@example.com, who holds neither. The password is `DEV_PASSWORD` in
+`devsite.py`. `admin` lets the holder read `/_status`.
 
 ```bash
 uv run flask --app devsite seed
@@ -174,6 +176,13 @@ uv run flask --app devsite seed
 ```bash
 uv run flask --app devsite run -p 5001
 ```
+
+Until `seed` has run, podpack warns at boot that no `admin` role exists, and
+tells you to run `flask --app podpack roles create admin`. **Don't run that
+here.** podpack takes the name from the Flask app, which is `podpack` for a
+site with no package of its own, and `--app podpack` then looks for the
+container's `/etc/podpack/app.toml` and fails. Run `seed` instead. On this
+site, every `flask` command is `--app devsite`.
 
 The dev site reads templates once, so restart it after changing one.
 

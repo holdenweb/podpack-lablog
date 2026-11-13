@@ -4,11 +4,19 @@ Not part of the package. An app cannot run on a bare Flask app -- `db`,
 `app_config()` and `base.html` all come from the framework -- so the smallest
 thing that can host it is a site (writing-an-app.md, Part 2).
 
-    uv run flask --app devsite seed     # two users and the role, once
+    uv run flask --app devsite seed     # two users and the roles, once
     uv run flask --app devsite run -p 5001
 
-`seed` makes holder@example.com, who has the `lablog` role, and
-stranger@example.com, who does not, both with the password in DEV_PASSWORD.
+`seed` makes holder@example.com, who has the `lablog` and `admin` roles, and
+stranger@example.com, who has neither, both with the password in DEV_PASSWORD.
+
+`admin` is there so that `/_status` -- where this app's `status()` reports on
+its role -- answers the holder. It also silences podpack's boot warning about
+the missing role, which would otherwise tell you to run
+`flask --app podpack roles create admin`. That command is wrong here: podpack
+names the Flask app's import name, which is `podpack` for a site with no
+package of its own, and `--app podpack` then looks for the container's
+/etc/podpack/app.toml. On this site every command is `--app devsite`.
 """
 
 import os
@@ -52,10 +60,13 @@ def create_app() -> Flask:
 
     @app.cli.command("seed")
     def seed() -> None:
-        """Create the dev users and the role, if they are not there already."""
+        """Create the dev users and the roles, if they are not there already."""
+        from podpack import ADMIN_ROLE
         from podpack.auth import user_datastore
 
-        role = user_datastore.find_or_create_role("lablog")
+        roles = [
+            user_datastore.find_or_create_role(name) for name in ("lablog", ADMIN_ROLE)
+        ]
         for email in (HOLDER, STRANGER):
             user = user_datastore.find_user(email=email)
             if user is None:
@@ -66,8 +77,9 @@ def create_app() -> Flask:
                     confirmed_at=datetime.now(timezone.utc),
                 )
             if email == HOLDER:
-                user_datastore.add_role_to_user(user, role)
+                for role in roles:
+                    user_datastore.add_role_to_user(user, role)
         db.session.commit()
-        click.echo(f"{HOLDER} (role lablog) and {STRANGER} (no role) are ready")
+        click.echo(f"{HOLDER} (roles lablog, admin) and {STRANGER} (no roles) are ready")
 
     return app
