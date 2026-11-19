@@ -188,8 +188,9 @@ The dev site reads templates once, so restart it after changing one.
 
 ## Releasing
 
-Bump the version, commit, tag `r<version>` and push the tag.
-`.github/workflows/publish.yml` checks that the tag matches the version, runs
-the tests, builds and publishes through PyPI trusted publishing, so there's no
-token. The first release needs a pending publisher registered on PyPI for
-`podpack-lablog`. `tools/publish.py` makes the same checks from a laptop.
+Bump the version, commit, tag `r<version>` and push the tag; `release --push`
+does all four. `.github/workflows/publish.yml` then runs `ci.yml` on the
+tagged commit and publishes only if it passes: it checks that the tag names
+exactly the declared version, builds, and publishes through PyPI trusted
+publishing, so there's no token. The first release needs a pending publisher
+registered on PyPI for `podpack-lablog`.
