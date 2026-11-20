@@ -15,3 +15,4 @@ devsite/dev.db
 
 # Built from README.md for previewing; the source is the markdown.
 README.html
+.DS_Store
