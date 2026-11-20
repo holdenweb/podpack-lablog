@@ -54,6 +54,10 @@ Requires **podpack 0.9.0 or later**, the first release with `Backup`. It was
 developed and tested against 0.10.1. Nothing enforces the minimum, because an
 app can't name podpack in its dependencies.
 
+The steps are below. For a site on podpack's container substrate,
+[docs/installing-in-a-site.md](https://github.com/holdenweb/podpack-lablog/blob/main/docs/installing-in-a-site.md)
+gives every command in order, as run on two real sites.
+
 1. Add the distribution. This needs a rebuild to reach the image:
 
    ```bash
