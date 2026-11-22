@@ -40,7 +40,16 @@ from .forms import (
     ExperimentForm,
     ProjectForm,
 )
-from .models import OUTCOMES, RESERVED_SLUGS, Entry, Experiment, Locked, Project, slugify
+from .models import (
+    OUTCOMES,
+    RESERVED_SLUGS,
+    Entry,
+    Experiment,
+    Locked,
+    Project,
+    normalise_home,
+    slugify,
+)
 from .render import markdown, stamp
 
 logger = getLogger(__name__)
@@ -125,18 +134,21 @@ def new_project() -> ResponseReturnValue:
         name = _text(form.name)
         slug = slugify(name)
         problem = _name_problem(name, slug)
-        if problem is None:
+        home, home_problem = _home_directory(form)
+        if problem is None and home_problem is None:
             project = Project(
                 name=name,
                 slug=slug,
                 description=_text(form.description),
+                home_directory=home,
                 created_by=_me(),
             )
             db.session.add(project)
             db.session.commit()
             logger.info("project %r created by user %s", slug, current_user.id)
             return redirect(url_for("lablog.project", slug=slug))
-        form.name.errors = [*form.name.errors, problem]
+        _complain(form.name, problem)
+        _complain(form.home_directory, home_problem)
     return render_template(
         "lablog/project_form.html", title="New project", form=form, project=None
     )
@@ -153,18 +165,22 @@ def project(slug: str) -> ResponseReturnValue:
 @blueprint.route("/<slug>/edit", methods=["GET", "POST"])
 @role_required
 def edit_project(slug: str) -> ResponseReturnValue:
-    """Rename or re-describe. The slug stays, so every link to it still works."""
+    """Rename, re-describe or re-home. The slug stays, so every link to it
+    still works."""
     project = _project_or_404(slug)
     form = ProjectForm(obj=project)
     if form.validate_on_submit():
         name = _text(form.name)
         problem = _name_problem(name, None, project)
-        if problem is None:
+        home, home_problem = _home_directory(form, project)
+        if problem is None and home_problem is None:
             project.name = name
             project.description = _text(form.description)
+            project.home_directory = home
             db.session.commit()
             return redirect(url_for("lablog.project", slug=slug))
-        form.name.errors = [*form.name.errors, problem]
+        _complain(form.name, problem)
+        _complain(form.home_directory, home_problem)
     return render_template(
         "lablog/project_form.html", title=f"Edit {project.name}", form=form, project=project
     )
@@ -189,6 +205,35 @@ def _name_problem(name: str, slug: str | None, current: Project | None = None) -
     if db.session.scalar(query) is not None:
         return "A project with that name, or one giving the same address, already exists."
     return None
+
+
+def _home_directory(form: ProjectForm, current: Project | None = None) -> tuple[str | None, str | None]:
+    """The home directory the form gives, normalised, and why it cannot be
+    used (None if it can).
+
+    The path rules are the model's; this only puts their refusal beside the
+    field. The clash is checked here for the reason `_name_problem` gives, and
+    against the *normalised* path, so `/a/b/` and `/a/b` are seen as the one
+    directory they are.
+    """
+    try:
+        home = normalise_home(_text(form.home_directory))
+    except ValueError as refusal:
+        return None, str(refusal)
+    if home is None:
+        return None, None
+    query = sa.select(Project.name).where(Project.home_directory == home)
+    if current is not None:
+        query = query.where(Project.id != current.id)
+    owner = db.session.scalar(query)
+    if owner is not None:
+        return home, f"That is already the home directory of {owner}."
+    return home, None
+
+
+def _complain(field: Any, problem: str | None) -> None:
+    if problem is not None:
+        field.errors = [*field.errors, problem]
 
 
 def _project_or_404(slug: str) -> Project:

@@ -22,8 +22,28 @@ The log is a record, so it can't be rewritten with hindsight:
 
 The model enforces these rules, not the pages, so a route added later can't
 bypass them. A refused request gets **409** with the reason on the page, and
-nothing changes. A project's name and description aren't part of the record,
-so they stay editable. Its address doesn't change.
+nothing changes. A project's name, description and home directory aren't
+part of the record, so they stay editable. Its address doesn't change.
+
+## A project's home directory
+
+Optional: where the project's code lives, as a full path on that machine.
+It's there so that a client working in a directory can find the project for
+it, which means one directory must always be stored as one string and no two
+projects can share one:
+
+- **Absolute paths only.** `~/…` is refused, because the server can't know
+  whose home `~` means, and a stored `~` would never match the absolute
+  working directory a client sends. A relative path is refused too.
+- **Normalised** with `posixpath.normpath`: a trailing slash is dropped, and
+  `//`, `/./` and `/../` are folded, so `/a/b/` and `/a//b` are both stored
+  as `/a/b`.
+- **Unique when set.** A directory another project already has is refused
+  beside the field, whichever spelling it arrives in. Any number of projects
+  can have none.
+
+The app only stores the text. It never reads, creates or checks the
+directory.
 
 Entries, expectations and conclusions are Markdown (CommonMark, plus tables and
 strikethrough). Raw HTML is shown as text rather than run, and `javascript:`
@@ -120,10 +140,10 @@ Mounted at `/lablog` unless the site says otherwise in `[site.mounts]`.
 
 | Route | |
 | --- | --- |
-| `GET /` | projects, with their experiment counts, open experiments and last activity |
+| `GET /` | projects, with their home directories, experiment counts, open experiments and last activity |
 | `GET, POST /new` | add a project |
 | `GET /<slug>/` | the complete log |
-| `GET, POST /<slug>/edit` | rename a project or edit its description |
+| `GET, POST /<slug>/edit` | rename a project, or edit its description or home directory |
 | `GET, POST /<slug>/experiments/new` | start an experiment |
 | `GET /<slug>/experiments/<n>` | one experiment, with the forms its state allows |
 | `POST /<slug>/experiments/<n>/expectation` | revise the expectation |
@@ -144,6 +164,21 @@ backup.
 Release notes will say when a version changes the schema. When one does,
 autogenerate and apply a revision on the site as in step 3 above. Nothing else
 will remind you.
+
+**Releases after 0.1.1 change the schema.** They add
+`lablog_project.home_directory`. A site that takes one without the revision
+answers every lablog page with a 500:
+`no such column: lablog_project.home_directory`. The revision autogenerate
+writes is one nullable column and one named unique constraint, and nothing
+else. Tried on podpack-demo's PostgreSQL, it upgraded over existing projects,
+and its downgrade dropped the constraint by name and the column:
+
+```python
+op.add_column('lablog_project', sa.Column('home_directory', sa.String(length=1024), nullable=True))
+op.create_unique_constraint('uq_lablog_project_home_directory', 'lablog_project', ['home_directory'])
+```
+
+Existing projects keep no home directory until someone edits them.
 
 ## Developing it
 
@@ -189,6 +224,12 @@ container's `/etc/podpack/app.toml` and fails. Run `seed` instead. On this
 site, every `flask` command is `--app devsite`.
 
 The dev site reads templates once, so restart it after changing one.
+
+It builds its tables with `create_all`, which creates missing tables and never
+alters existing ones. So after a schema change, an existing `devsite/dev.db`
+answers with the same `no such column` 500 a site would. Move it aside and run
+`seed` again. Alternatively, point `SQLALCHEMY_DATABASE_URI` at a fresh file
+for one run: `devsite.py` only sets it when it isn't already set.
 
 ## Releasing
 

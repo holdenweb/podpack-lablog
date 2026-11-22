@@ -13,7 +13,7 @@ from wtforms import RadioField, SelectField, StringField, SubmitField, TextAreaF
 from wtforms.fields.choices import SelectChoice
 from wtforms.validators import DataRequired, Length, Optional
 
-from .models import KINDS, OUTCOMES
+from .models import HOME_DIRECTORY_MAX, KINDS, OUTCOMES
 
 NOT_A_CORRECTION = 0
 
@@ -27,6 +27,11 @@ def choices(labels: dict[str, str]) -> list[SelectChoice]:
 class ProjectForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired(), Length(max=200)])
     description = TextAreaField("Description (Markdown)", validators=[Optional()])
+    # Only the length is checked here. Whether it is a usable path is the
+    # model's rule (`normalise_home`), so it holds for every route.
+    home_directory = StringField(
+        "Home directory", validators=[Optional(), Length(max=HOME_DIRECTORY_MAX)]
+    )
     submit = SubmitField("Save project")
 
 

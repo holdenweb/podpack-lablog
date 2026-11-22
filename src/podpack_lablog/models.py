@@ -14,11 +14,12 @@ while installing the app -- but the views do, so the tables would reach
 `db.metadata` either way.
 """
 
+import posixpath
 import re
 from datetime import datetime, timezone
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Mapped, relationship
+from sqlalchemy.orm import Mapped, relationship, validates
 
 from podpack import User, db
 
@@ -61,6 +62,42 @@ def slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
+HOME_DIRECTORY_MAX = 1024
+
+
+def normalise_home(path: str | None) -> str | None:
+    """A project's home directory as stored, or None for no home at all.
+
+    The path is on the machine where the project's code lives, which is not
+    the server: nothing here ever reads or creates it. It is stored so that a
+    client working in a directory can ask for "the project for this
+    directory", and that lookup compares text, so one directory has to be
+    stored as one string. Hence absolute paths only, put through `normpath`,
+    which drops a trailing slash and folds `//`, `/./` and `/../`.
+
+    `~` is refused rather than expanded. Expanding it here would give the
+    server's home, and storing it unexpanded would never match the absolute
+    working directory a client sends. A client can always expand its own.
+
+    Raises ValueError, with a message fit to show beside the field.
+    """
+    text = (path or "").strip()
+    if not text:
+        return None
+    if text.startswith("~"):
+        raise ValueError(
+            "Give the full path rather than one starting with ~: "
+            "the server cannot know whose home ~ means."
+        )
+    if not text.startswith("/"):
+        raise ValueError("A home directory must be an absolute path, starting with /.")
+    normal = posixpath.normpath(text)
+    # POSIX lets a path start with exactly two slashes and mean something
+    # implementation-defined, so normpath leaves `//x` alone. Nobody types
+    # that meaning it, and keeping it would store `//x` and `/x` apart.
+    return "/" + normal.lstrip("/")
+
+
 def _user_fk(table: str, column: str, nullable: bool = False) -> sa.Column:
     """A column referring to podpack's `user` table.
 
@@ -80,15 +117,27 @@ def _user_fk(table: str, column: str, nullable: bool = False) -> sa.Column:
 
 
 class Project(db.Model):  # type: ignore[name-defined]  # flask-sqlalchemy builds db.Model at runtime
-    """Something being tested. Its name and description are not part of the
-    locked record, so both stay editable; its slug does not change."""
+    """Something being tested. Its name, description and home directory are
+    not part of the locked record, so all three stay editable; its slug does
+    not change."""
 
     __tablename__ = "lablog_project"
+    # Named, for the reason `_user_fk` gives: this constraint arrives on
+    # sites as a revision of their own, and an anonymous one would give that
+    # revision a `drop_constraint(None, ...)` downgrade that cannot run.
+    # PostgreSQL and SQLite both let any number of NULLs share a unique
+    # column, so projects without a home never clash.
+    __table_args__ = (
+        sa.UniqueConstraint("home_directory", name="uq_lablog_project_home_directory"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False, unique=True)
     slug = db.Column(db.String(200), nullable=False, unique=True)
     description = db.Column(db.Text, nullable=False, default="")
+    # Nullable: every project that existed before this column has no value
+    # for it, and NOT NULL would need a backfill no site could supply.
+    home_directory = db.Column(db.String(HOME_DIRECTORY_MAX), nullable=True)
     created = db.Column(db.DateTime(timezone=True), nullable=False, default=_now)
     created_by_id = _user_fk("lablog_project", "created_by_id")
 
@@ -105,6 +154,12 @@ class Project(db.Model):  # type: ignore[name-defined]  # flask-sqlalchemy build
     experiments: Mapped[list["Experiment"]] = relationship(
         "Experiment", back_populates="project", order_by="Experiment.number"
     )
+
+    @validates("home_directory")
+    def _normalise_home_directory(self, _key: str, value: str | None) -> str | None:
+        """Every assignment is normalised, whichever route makes it, as the
+        record's rules are enforced here and not in the views."""
+        return normalise_home(value)
 
     @property
     def last_activity(self) -> datetime:

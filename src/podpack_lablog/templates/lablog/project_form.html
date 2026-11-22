@@ -11,6 +11,8 @@
   {{ errors(form) }}
   <p>{{ form.name.label }}<br>{{ form.name(size=60) }}</p>
   <p>{{ form.description.label }}<br>{{ form.description(rows=6) }}</p>
+  <p>{{ form.home_directory.label }}<br>{{ form.home_directory(size=60, placeholder="/Users/you/projects/this-one") }}<br>
+  <span class="lablog-meta">Optional. Where the project's code lives, as a full path on that machine; no two projects can share one.</span></p>
   <p>{{ form.submit() }}</p>
 </form>
 </div>

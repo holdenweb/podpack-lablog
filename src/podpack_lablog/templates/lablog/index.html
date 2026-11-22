@@ -6,11 +6,12 @@
 <p><a href="{{ url_for('lablog.new_project') }}">Add a project</a></p>
 {% if projects %}
 <table>
-  <thead><tr><th>Project</th><th>Experiments</th><th>Still open</th><th>Last activity</th></tr></thead>
+  <thead><tr><th>Project</th><th>Home directory</th><th>Experiments</th><th>Still open</th><th>Last activity</th></tr></thead>
   <tbody>
   {% for project in projects %}
   <tr>
     <td><a href="{{ url_for('lablog.project', slug=project.slug) }}">{{ project.name }}</a></td>
+    <td>{% if project.home_directory %}<code>{{ project.home_directory }}</code>{% else %}&mdash;{% endif %}</td>
     <td>{{ project.experiments|length }}</td>
     <td>{% for experiment in project.open_experiments %}<a href="{{ url_for('lablog.experiment', slug=project.slug, number=experiment.number) }}">#{{ experiment.number }}</a>{% if not loop.last %}, {% endif %}{% else %}&mdash;{% endfor %}</td>
     <td>{{ stamp(project.last_activity) }}</td>
