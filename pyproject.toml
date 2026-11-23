@@ -1,6 +1,6 @@
 [project]
 name = "podpack-lablog"
-version = "0.1.1"
+version = "0.2.0"
 description = "A testing history for each project, as a podpack app: expectation, observations, conclusion"
 readme = "README.md"
 license = "MIT"
